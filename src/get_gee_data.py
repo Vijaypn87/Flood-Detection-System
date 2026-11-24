@@ -53,7 +53,7 @@ post_img = get_s1_image(roi, post_start, post_end)
 print("⬇️ Downloading Pre-Flood Image...")
 geemap.ee_export_image(
     pre_img, 
-    filename=os.path.join(pre_dir, "assam_pre.tif"), 
+    filename=os.path.join(pre_dir, "Assam_Pre.tif"), 
     scale=20, 
     region=roi, 
     file_per_band=False
@@ -62,7 +62,7 @@ geemap.ee_export_image(
 print("⬇️ Downloading Post-Flood Image...")
 geemap.ee_export_image(
     post_img, 
-    filename=os.path.join(post_dir, "assam_post.tif"), 
+    filename=os.path.join(post_dir, "Assam_Post.tif"), 
     scale=20, 
     region=roi, 
     file_per_band=False

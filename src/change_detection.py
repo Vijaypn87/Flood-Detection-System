@@ -9,11 +9,11 @@ def detect_changes(model, pre_img_tensor, post_img_tensor, threshold=0.5):
     model.eval()
     with torch.no_grad():
         # Predict water mask for Pre-flood
-        pre_pred = model(pre_img_tensor)
+        pre_pred = torch.sigmoid(model(pre_img_tensor))
         pre_mask = (pre_pred > threshold).float().cpu().numpy()[0][0]
 
         # Predict water mask for Post-flood
-        post_pred = model(post_img_tensor)
+        post_pred = torch.sigmoid(model(post_img_tensor))
         post_mask = (post_pred > threshold).float().cpu().numpy()[0][0]
 
     # LOGIC: Flood = (Water in Post) AND (No Water in Pre)

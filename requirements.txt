@@ -1,0 +1,15 @@
+# Web app (app/app.py)
+flask>=3.0
+numpy>=1.24
+opencv-python-headless>=4.8
+pillow>=10.0
+matplotlib>=3.7
+
+# Model training / change detection (src/)
+torch>=2.0
+torchvision>=0.15
+tqdm>=4.65
+
+# Google Earth Engine download (src/get_gee_data.py)
+earthengine-api>=0.1.380
+geemap>=0.30

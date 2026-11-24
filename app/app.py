@@ -13,7 +13,11 @@ from PIL import Image
 # Resolve everything from the repository root so the app works no matter
 # which directory it is started from.
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+# Prefer the small copies in data/web (made by scripts/make_web_images.py);
+# fall back to the full-resolution data/raw. Override with FLOOD_DATA_DIR.
+_WEB_DIR = os.path.join(BASE_DIR, "data", "web")
+_RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
+DATA_DIR = os.environ.get("FLOOD_DATA_DIR") or (_WEB_DIR if os.path.isdir(_WEB_DIR) else _RAW_DIR)
 
 app = Flask(
     __name__,

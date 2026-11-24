@@ -1,0 +1,8 @@
+# Model training / change detection (src/) and Google Earth Engine download.
+# Not needed to run the web app.
+-r requirements.txt
+torch>=2.0
+torchvision>=0.15
+tqdm>=4.65
+earthengine-api>=0.1.380
+geemap>=0.30

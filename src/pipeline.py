@@ -33,7 +33,7 @@ class IndiaFloodDataset(Dataset):
 
     def __getitem__(self, index):
         img_path = os.path.join(self.image_dir, self.images[index])
-        mask_path = os.path.join(self.mask_dir, self.images[index].replace(".jpg", ".png"))
+        mask_path = os.path.join(self.mask_dir, os.path.splitext(self.images[index])[0] + ".png")
         
         # Load Image (Assam Satellite)
         image = np.array(Image.open(img_path).convert("RGB").resize((IMAGE_WIDTH, IMAGE_HEIGHT)))
@@ -55,8 +55,11 @@ class IndiaFloodDataset(Dataset):
 
 def train_model():
     print("⏳ Loading Assam Dataset...")
+    if not os.path.isdir(TRAIN_IMG_DIR) or not os.path.isdir(TRAIN_MASK_DIR):
+        print(f"❌ Error: training folders not found. Create {TRAIN_IMG_DIR} and {TRAIN_MASK_DIR}.")
+        return
     images = os.listdir(TRAIN_IMG_DIR)
-    
+
     if len(images) == 0:
         print("❌ Error: No images found. Did you do the Copy-Paste step?")
         return

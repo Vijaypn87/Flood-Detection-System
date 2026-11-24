@@ -7,13 +7,25 @@ import numpy as np
 import base64
 import io
 import os
-from PIL import Image, ImageEnhance
-
-app = Flask(__name__)   
+from PIL import Image
 
 # --- CONFIGURATION ---
-DATA_DIR = os.path.join("data", "raw")
-Image.MAX_IMAGE_PIXELS = None 
+# Resolve everything from the repository root so the app works no matter
+# which directory it is started from.
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static"),
+)
+# Reject request bodies larger than 100 MB (two uploaded images).
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+
+# Large GeoTIFFs exceed Pillow's default limit, but keep a ceiling so a
+# crafted upload can't exhaust memory (decompression bomb).
+Image.MAX_IMAGE_PIXELS = 300_000_000
 
 # --- REGION DATA ---
 REGION_FILES = {
@@ -42,13 +54,26 @@ def mask_to_base64(mask_np):
     _, buffer = cv2.imencode('.png', bgra_mask)
     return base64.b64encode(buffer).decode('utf-8')
 
+def find_data_file(subfolder, filename):
+    """Return the path to a data file, matching the name case-insensitively
+    (file systems on Linux/macOS are case-sensitive)."""
+    folder = os.path.join(DATA_DIR, subfolder)
+    exact = os.path.join(folder, filename)
+    if os.path.exists(exact):
+        return exact
+    if os.path.isdir(folder):
+        for name in os.listdir(folder):
+            if name.lower() == filename.lower():
+                return os.path.join(folder, name)
+    return None
+
 def load_image(source, is_file_upload=False, subfolder=None):
     try:
         if is_file_upload:
             img = Image.open(source.stream).convert("RGB")
         else:
-            path = os.path.join(DATA_DIR, subfolder, source)
-            if not os.path.exists(path): return None
+            path = find_data_file(subfolder, source)
+            if path is None: return None
             img = Image.open(path).convert("RGB")
             
         img_np = np.array(img)
@@ -93,7 +118,7 @@ def generate_white_theme_plot(flood_area, total_area, region_name):
     return base64.b64encode(buf.getvalue()).decode('utf-8')
 
 def process_images(pre_img, post_img, region_name, coords):
-    if pre_img is None or post_img is None: return jsonify({"error": "Image Load Failed"}), 500
+    if pre_img is None or post_img is None: return jsonify({"error": "Could not read one or both images. Upload PNG, JPG or TIF files."}), 400
 
     # 1. Convert to Grayscale
     gray_pre = cv2.cvtColor(pre_img, cv2.COLOR_RGB2GRAY)
@@ -133,7 +158,11 @@ def process_images(pre_img, post_img, region_name, coords):
     flood_pixels = np.count_nonzero(mask == 255)
     total_valid_pixels = np.count_nonzero(valid_mask == 255)
     
-    if total_valid_pixels == 0: total_valid_pixels = 1
+    if total_valid_pixels == 0:
+        # One of the images is blank (e.g. a failed satellite export), so
+        # there is nothing to compare. Don't report a misleading 0%.
+        return jsonify({"error": f"No usable image data for {region_name}: "
+                                 "the pre- or post-flood image is empty."}), 422
         
     percentage = (flood_pixels / total_valid_pixels) * 100
     total_area_km = 500
@@ -169,7 +198,13 @@ def analyze_region():
         post_img = load_image(info['post'], False, "post_flood")
         
         return process_images(pre_img, post_img, region, info['coords'])
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    except Exception:
+        app.logger.exception("Analysis failed")
+        return jsonify({"error": "Analysis failed. Check the server log for details."}), 500
+
+@app.errorhandler(413)
+def file_too_large(_e):
+    return jsonify({"error": "Upload too large (limit is 100 MB)."}), 413
 
 @app.route('/analyze_upload', methods=['POST'])
 def analyze_upload():
@@ -181,7 +216,12 @@ def analyze_upload():
         post_img = load_image(post_file, True)
         
         return process_images(pre_img, post_img, "Uploaded Region", [20.0, 78.0])
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    except Exception:
+        app.logger.exception("Analysis failed")
+        return jsonify({"error": "Analysis failed. Check the server log for details."}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Debug mode exposes an interactive debugger; enable it only locally
+    # with:  FLASK_DEBUG=1 python app/app.py
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(debug=debug, port=int(os.environ.get("PORT", 5000)))

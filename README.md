@@ -1,69 +1,59 @@
+<div align="center">
+
+# 🌊 Flood Detection System
+
+**Mapping flood-affected areas from Sentinel-1 SAR satellite imagery**
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20App-2ea44f?style=for-the-badge&logo=render&logoColor=white)](https://flood-detection-system-m2iq.onrender.com/)
+
+### Tech Stack
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
+![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
+![Google Earth Engine](https://img.shields.io/badge/Google%20Earth%20Engine-4285F4?style=for-the-badge&logo=google&logoColor=white)
+![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)
+
+</div>
+
 ---
-title: Flood Detection System
-emoji: 🌊
-colorFrom: blue
-colorTo: red
-sdk: docker
-app_port: 7860
-pinned: false
----
 
-# Flood Detection System
+## Overview
 
-A Flask web app that maps flooding by comparing pre-flood and post-flood
-Sentinel-1 SAR images from Google Earth Engine. Pick one of six Indian
-regions or upload your own image pair; the app highlights changed areas in
-red on a Leaflet map and reports the share of the area affected.
+A web application that detects flooded areas by comparing Sentinel-1 radar
+images taken before and after a flood. Radar sees through clouds, so floods
+can be mapped even during heavy monsoon rain.
 
-Detection currently uses image differencing (grayscale difference with a
-fixed threshold). A U-Net segmentation model for future training is in
-`models/` and `src/`.
+| Pre-flood | Post-flood |
+|:---:|:---:|
+| ![Pre-flood SAR image](Pre_flood.png) | ![Post-flood SAR image](Post_flood.png) |
 
-## Run locally
+## Features
+
+- **Regional analysis** of six flood-prone regions in India
+- **Custom detection** from your own pre-flood and post-flood images
+- **Interactive map** with the flood extent highlighted in red
+- **Impact statistics** showing the percentage of area inundated
+
+## How It Works
+
+1. Sentinel-1 images are downloaded from Google Earth Engine.
+2. Pre-flood and post-flood images are converted to grayscale and smoothed.
+3. Pixels with a significant change in radar backscatter are marked as flooded.
+4. Noise is removed and the flood mask is shown on the map with statistics.
+
+## Run Locally
 
 ```bash
+git clone https://github.com/Vijaypn87/Flood-Detection-System.git
+cd Flood-Detection-System
 pip install -r requirements.txt
-python app/app.py            # http://localhost:5000
+python app/app.py
 ```
 
-Set `FLASK_DEBUG=1` to enable debug mode during development.
-
-## Data
-
-- `data/raw/` – full-resolution GeoTIFFs (~190 MB)
-- `data/web/` – small copies (≤1024 px, ~6 MB) used by default
-
-Regenerate the small copies after changing the raw data:
-
-```bash
-python scripts/make_web_images.py
-```
-
-Set `FLOOD_DATA_DIR=data/raw` to analyze the full-resolution files instead.
-
-## Deploy (Docker / Hugging Face Spaces)
-
-```bash
-docker build -t flood-detection .
-docker run -p 7860:7860 flood-detection   # http://localhost:7860
-```
-
-On Hugging Face, create a **Docker** Space and push this repository to it.
-The metadata block at the top of this README configures the Space. Leave out
-`data/raw/` (the image only uses `data/web/`), or track it with Git LFS,
-because Hugging Face rejects files over 10 MB without LFS.
-
-## Model training (optional)
-
-```bash
-pip install -r requirements-ml.txt
-python src/get_gee_data.py   # download Sentinel-1 images (needs a GEE account)
-python src/pipeline.py       # train the U-Net (needs data/train/images + masks)
-```
-
-## Known limitations
-
-- The Chennai and Mumbai post-flood images are blank and need to be
-  downloaded again.
-- Flooded area in km² assumes a fixed 500 km² region, and map overlays use a
-  fixed extent around each region's centre instead of the image's real bounds.
+Open **http://localhost:5000** in your browser.
